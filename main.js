@@ -734,12 +734,12 @@ function renderNutritionDoughnut(consumed, breakdown, remaining) {
   if (!canvas) return;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-  if (!consumed) {
+  if (consumed === undefined) {
     // Recalculate if called without args (e.g. theme change)
     const n = getTodayNutrition();
     consumed  = n.calories;
     breakdown = n.breakdown;
-    remaining = Math.max(0, profile.targetCalories - consumed);
+    remaining = Math.max(0, (profile?.targetCalories ?? 0) - consumed);
   }
 
   const bCal = breakdown?.breakfast || 0;
@@ -753,7 +753,7 @@ function renderNutritionDoughnut(consumed, breakdown, remaining) {
     data: {
       labels: ['아침', '점심', '저녁', '잔여'],
       datasets: [{
-        data: [bCal, lCal, dCal, remaining || profile.targetCalories],
+        data: [bCal, lCal, dCal, remaining ?? profile.targetCalories],
         backgroundColor: ['#FFA726', '#42A5F5', '#AB47BC', isDark ? '#30363D' : '#E8EDF5'],
         borderWidth: 0,
         hoverOffset: 5,
@@ -802,7 +802,7 @@ async function fetchSmartRecommendation(deficit) {
       messages: [{ role: 'user', content: userMsg }],
     });
     const json = parseJSONSafe(text);
-    renderRecommendations(json.recommendations || []);
+    renderRecommendations(json?.recommendations || []);
   } catch (err) {
     document.getElementById('ai-rec-cards').innerHTML =
       `<p class="rec-loading" style="color:var(--danger-text)">추천을 불러오지 못했어요: ${err.message}</p>`;
@@ -892,7 +892,7 @@ function handleFileUpload(e) {
   reader.readAsDataURL(file);
 }
 
-async function resizeImage(dataUrl, maxW = 1024, maxH = 1024, q = 0.85) {
+async function resizeImage(dataUrl, maxW = 640, maxH = 640, q = 0.7) {
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -936,7 +936,7 @@ async function runFoodAnalysis() {
     });
 
     const json = parseJSONSafe(text);
-    if (!json.foods || !json.total_calories) throw new Error('인식된 음식이 없어요.');
+    if (!json || !json.foods) throw new Error('인식된 음식이 없어요.');
     currentNutrition = json;
     showResultStep(json);
   } catch (err) {
@@ -988,8 +988,12 @@ function showCamStep(stepId) {
 }
 
 function parseJSONSafe(text) {
-  const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-  return JSON.parse(cleaned);
+  try {
+    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
 }
 
 // ===== RENDER REPORT (wrapper) =====
@@ -1290,6 +1294,18 @@ function init() {
   });
   document.getElementById('retry-btn').addEventListener('click', runFoodAnalysis);
   document.getElementById('cancel-btn').addEventListener('click', closeCameraModal);
+  document.getElementById('manual-apply-btn').addEventListener('click', () => {
+    const food = document.getElementById('manual-food').value.trim() || '직접입력';
+    const cal  = parseFloat(document.getElementById('manual-cal').value)  || 0;
+    const carb = parseFloat(document.getElementById('manual-carb').value) || 0;
+    const prot = parseFloat(document.getElementById('manual-prot').value) || 0;
+    const fat  = parseFloat(document.getElementById('manual-fat').value)  || 0;
+    currentNutrition = {
+      foods: [{ name: food, amount_g: 0, calories: cal, carbs_g: carb, protein_g: prot, fat_g: fat }],
+      total_calories: cal, total_carbs_g: carb, total_protein_g: prot, total_fat_g: fat,
+    };
+    applyNutritionResult();
+  });
 
   // Close camera modal on backdrop click
   document.getElementById('camera-modal').addEventListener('click', e => {

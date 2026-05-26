@@ -53,11 +53,14 @@ async function _callGemini({ model, system, messages }) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    console.error('[Gemini Error]', res.status, JSON.stringify(err));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
 
   const data = await res.json();
-  return data.candidates[0].content.parts.map(p => p.text || '').join('');
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content?.parts) throw new Error('응답을 가져올 수 없어요. (안전 필터 또는 빈 응답)');
+  return candidate.content.parts.map(p => p.text || '').join('');
 }
 
 // ── OpenRouter / OpenAI-compatible ───────────────────────────
@@ -77,10 +80,12 @@ async function _callOpenAICompat({ model, system, messages }) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    console.error('[OpenRouter Error]', res.status, JSON.stringify(err));
     throw new Error(err.error?.message || `HTTP ${res.status}`);
   }
 
   const data    = await res.json();
+  if (!data.choices?.[0]?.message) throw new Error('응답을 가져올 수 없어요.');
   const content = data.choices[0].message.content;
   if (Array.isArray(content)) {
     return content.map(p => (typeof p === 'string' ? p : p.text || '')).join('');
@@ -89,6 +94,6 @@ async function _callOpenAICompat({ model, system, messages }) {
 }
 
 // Backward-compatible wrapper
-async function callOpenRouter(messages, model = 'openai/gpt-4o-mini') {
-  return callAI({ model, messages });
+async function callOpenRouter(messages, model = 'openai/gpt-4o-mini', system) {
+  return callAI({ model, system, messages });
 }

@@ -610,8 +610,10 @@ body {
 .ai-total-lbl { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Error step */
-.error-box { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem 1rem; text-align: center; }
+.error-box { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.25rem 1rem 0.5rem; text-align: center; }
 .error-box p { color: var(--text-secondary); font-size: 0.9rem; }
+.manual-input-form { padding: 0 0.25rem 0.5rem; }
+.manual-input-form .form-input { width: 100%; box-sizing: border-box; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {

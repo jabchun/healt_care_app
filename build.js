@@ -2,8 +2,8 @@
 const fs = require('fs');
 
 const key     = process.env.API_KEY || '';
-const model   = process.env.CLAUDE_MODEL || 'gemini-2.0-flash-001';
-const baseUrl = process.env.BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai';
+const model   = process.env.CLAUDE_MODEL || 'anthropic/claude-sonnet-4-5';
+const baseUrl = process.env.BASE_URL || 'https://openrouter.ai/api/v1';
 
 if (!key) {
   console.error('ERROR: API_KEY 환경 변수가 설정되지 않았습니다.');

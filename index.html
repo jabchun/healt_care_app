@@ -686,15 +686,26 @@
           <span style="font-size:2.5rem">😥</span>
           <p id="error-msg">분석에 실패했어요.</p>
         </div>
-        <div class="cam-controls">
-          <button id="retry-btn" class="btn btn-primary">다시 시도</button>
+        <div class="manual-input-form">
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem">직접 입력할 수 있어요</p>
+          <input type="text"   id="manual-food"    class="form-input" placeholder="음식명 (예: 비빔밥)" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem">
+            <input type="number" id="manual-cal"  class="form-input" placeholder="칼로리 (kcal)" min="0" />
+            <input type="number" id="manual-carb" class="form-input" placeholder="탄수화물 (g)"  min="0" />
+            <input type="number" id="manual-prot" class="form-input" placeholder="단백질 (g)"   min="0" />
+            <input type="number" id="manual-fat"  class="form-input" placeholder="지방 (g)"     min="0" />
+          </div>
+          <button id="manual-apply-btn" class="btn btn-primary" style="width:100%;margin-top:0.75rem">입력 완료</button>
+        </div>
+        <div class="cam-controls" style="margin-top:0.5rem">
+          <button id="retry-btn" class="btn btn-secondary">다시 시도</button>
           <button id="cancel-btn" class="btn btn-secondary">닫기</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="config.js"></script>
+  <script src="config.local.js"></script>
   <script src="api.js"></script>
   <script src="main.js"></script>
 </body>
