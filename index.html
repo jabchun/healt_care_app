@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HealthBalance Planner</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ===== AUTH SCREEN ===== -->
+  <div id="auth-screen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">💚</div>
+        <h1>HealthBalance Planner</h1>
+        <p class="text-secondary">건강한 습관을 함께 만들어가요</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">로그인</button>
+        <button class="auth-tab" data-tab="register">회원가입</button>
+      </div>
+
+      <div id="auth-login" class="auth-panel active-panel">
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="login-username">아이디</label>
+            <input type="text" id="login-username" placeholder="아이디 입력" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="login-password">비밀번호</label>
+            <div class="pw-wrap">
+              <input type="password" id="login-password" placeholder="비밀번호 입력" autocomplete="current-password" />
+              <button type="button" class="pw-eye" data-target="login-password" aria-label="비밀번호 표시">👁</button>
+            </div>
+          </div>
+          <div class="remember-row">
+            <label class="remember-label">
+              <input type="checkbox" id="login-remember" checked />
+              <span>로그인 상태 유지</span>
+            </label>
+          </div>
+          <p id="login-error" class="form-error"></p>
+          <button type="submit" class="btn btn-primary btn-full">로그인</button>
+        </form>
+      </div>
+
+      <div id="auth-register" class="auth-panel">
+        <form id="register-form" novalidate>
+          <div class="form-group">
+            <label for="reg-username">아이디</label>
+            <input type="text" id="reg-username" placeholder="영문·숫자·_ (3~20자)" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">비밀번호</label>
+            <div class="pw-wrap">
+              <input type="password" id="reg-password" placeholder="6자 이상" autocomplete="new-password" />
+              <button type="button" class="pw-eye" data-target="reg-password" aria-label="비밀번호 표시">👁</button>
+            </div>
+            <div class="pw-strength-wrap">
+              <div class="pw-strength-track">
+                <div id="pw-strength-bar" class="pw-strength-bar"></div>
+              </div>
+              <span id="pw-strength-label" class="pw-strength-label"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-confirm">비밀번호 확인</label>
+            <div class="pw-wrap">
+              <input type="password" id="reg-confirm" placeholder="비밀번호 재입력" autocomplete="new-password" />
+              <button type="button" class="pw-eye" data-target="reg-confirm" aria-label="비밀번호 표시">👁</button>
+            </div>
+          </div>
+          <p id="register-error" class="form-error"></p>
+          <button type="submit" class="btn btn-primary btn-full">계정 만들기</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ONBOARDING ===== -->
+  <div id="onboarding" class="onboarding hidden">
+    <div class="onboarding-card">
+      <div class="onboarding-header">
+        <div class="onboarding-logo">💚</div>
+        <h1>HealthBalance Planner</h1>
+        <p id="onboarding-welcome">건강한 시작을 위한 기본 정보를 입력해주세요</p>
+      </div>
+      <form id="onboarding-form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ob-name">이름</label>
+            <input type="text" id="ob-name" placeholder="이름" required />
+          </div>
+          <div class="form-group">
+            <label for="ob-age">나이</label>
+            <input type="number" id="ob-age" placeholder="나이" min="10" max="100" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ob-gender">성별</label>
+            <div class="select-wrapper">
+              <select id="ob-gender" required>
+                <option value="">선택</option>
+                <option value="male">남성</option>
+                <option value="female">여성</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ob-height">신장 (cm)</label>
+            <input type="number" id="ob-height" placeholder="cm" min="100" max="250" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ob-weight">현재 체중 (kg)</label>
+            <input type="number" id="ob-weight" placeholder="kg" min="20" max="300" step="0.1" required />
+          </div>
+          <div class="form-group">
+            <label for="ob-goal-weeks">목표 기간 (주)</label>
+            <input type="number" id="ob-goal-weeks" placeholder="주" min="1" max="52" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ob-activity">활동량</label>
+          <div class="select-wrapper">
+            <select id="ob-activity" required>
+              <option value="">선택하세요</option>
+              <option value="sedentary">비활동적 (거의 운동 안 함)</option>
+              <option value="light">가병게 활동 (주 1-3회 가벼운 운동)</option>
+              <option value="moderate">보통 활동 (주 3-5회 운동)</option>
+              <option value="active">매우 활동적 (주 6-7회 고강도 운동)</option>
+            </select>
+          </div>
+        </div>
+        <p id="form-error" class="form-error hidden">모든 항목을 올바르게 입력해주세요.</p>
+        <button type="submit" class="btn btn-primary btn-full">분석하기 →</button>
+      </form>
+      <div id="onboarding-result" class="onboarding-result hidden">
+        <h3>나의 건강 분석 결과</h3>
+        <div class="result-grid">
+          <div class="result-item">
+            <span class="result-label">기초대사량 (BMR)</span>
+            <span class="result-value" id="result-bmr">-</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">일일 소비 칼로리 (TDEE)</span>
+            <span class="result-value" id="result-tdee">-</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">목표 섭취 칼로리</span>
+            <span class="result-value" id="result-target">-</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">현재 체중 상태</span>
+            <span class="result-value" id="result-bmi">-</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">목표 체중 범위</span>
+            <span class="result-value" id="result-goal-weight">-</span>
+          </div>
+        </div>
+        <button id="confirm-btn" class="btn btn-primary btn-full">대시보드로 이동 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="dashboard" class="hidden">
+    <nav class="navbar">
+      <div class="nav-brand">
+        <span class="nav-logo">💚</span>
+        <span class="nav-title">HealthBalance Planner</span>
+      </div>
+      <div class="nav-actions">
+        <button id="dark-mode-toggle" class="icon-btn" title="다크 모드 토글">🌙</button>
+      </div>
+    </nav>
+
+    <div id="view-today" class="view visible">
+      <main class="main-content">
+        <section class="header-card card">
+          <div class="header-top">
+            <div class="header-info">
+              <h2 id="greeting">안녕하세요!</h2>
+              <p id="week-info" class="text-secondary">1주차 진행 중</p>
+            </div>
+            <div class="header-date" id="today-date"></div>
+          </div>
+          <div class="progress-section">
+            <div class="progress-label">
+              <span>오늘의 달성률</span>
+              <span id="progress-percent" class="progress-pct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar" id="progress-bar"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="checklist-section card">
+            <h3 class="section-title">오늘의 체크리스트</h3>
+            <p id="checklist-date" class="text-secondary date-label"></p>
+            <ul class="checklist" id="checklist">
+              <li class="checklist-item meal-item" data-key="breakfast">
+                <div class="checklist-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" data-key="breakfast" />
+                    <span class="checkbox-custom"></span>
+                    <div class="item-info">
+                      <span class="item-title">🍳 아침 식단 준수</span>
+                      <span class="item-sub" id="meal-sub-breakfast">균형 잊힌 아침 식사</span>
+                    </div>
+                  </label>
+                  <button type="button" class="ai-btn" data-meal="breakfast">📷 AI 분석</button>
+                </div>
+              </li>
+              <li class="checklist-item meal-item" data-key="lunch">
+                <div class="checklist-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" data-key="lunch" />
+                    <span class="checkbox-custom"></span>
+                    <div class="item-info">
+                      <span class="item-title">🥗 점심 식단 준수</span>
+                      <span class="item-sub" id="meal-sub-lunch">영양소 균형 점심</span>
+                    </div>
+                  </label>
+                  <button type="button" class="ai-btn" data-meal="lunch">📷 AI 분석</button>
+                </div>
+              </li>
+              <li class="checklist-item meal-item" data-key="dinner">
+                <div class="checklist-row">
+                  <label class="checkbox-label">
+                    <input type="checkbox" data-key="dinner" />
+                    <span class="checkbox-custom"></span>
+                    <div class="item-info">
+                      <span class="item-title">🍽️ 저녀 식단 준수</span>
+                      <span class="item-sub" id="meal-sub-dinner">가병고 건강한 저녀</span>
+                    </div>
+                  </label>
+                  <button type="button" class="ai-btn" data-meal="dinner">📷 AI 분석</button>
+                </div>
+              </li>
+              <li class="checklist-item" data-key="exercise">
+                <label class="checkbox-label">
+                  <input type="checkbox" data-key="exercise" />
+                  <span class="checkbox-custom"></span>
+                  <div class="item-info">
+                    <span class="item-title">🏃 운동 완료</span>
+                    <span class="item-sub">오늘의 운동 루틴</span>
+                  </div>
+                </label>
+              </li>
+              <li class="checklist-item" data-key="water">
+                <label class="checkbox-label">
+                  <input type="checkbox" data-key="water" />
+                  <span class="checkbox-custom"></span>
+                  <div class="item-info">
+                    <span class="item-title">💧 수분 2L 섭취</span>
+                    <span class="item-sub">하루 물 8잔 이상</span>
+                  </div>
+                </label>
+              </li>
+            </ul>
+          </section>
+
+          <aside class="side-cards">
+            <div class="card stat-card">
+              <div class="card-title">🔥 일일 권장 칼로리</div>
+              <div class="calorie-display">
+                <span class="calorie-number" id="target-calories">-</span>
+                <span class="calorie-unit">kcal</span>
+              </div>
+              <p class="calorie-note text-secondary" id="calorie-note">목표 기준</p>
+            </div>
+            <div class="card stat-card">
+              <div class="card-title">🥦 권장 영양소</div>
+              <div class="macro-list">
+                <div class="macro-item">
+                  <div class="macro-header">
+                    <span class="macro-name">탄수화물</span>
+                    <span class="macro-gram" id="carb-g">- g</span>
+                  </div>
+                  <div class="macro-bar-track"><div class="macro-bar carb-bar" style="width:40%"></div></div>
+                  <span class="macro-pct-label">40%</span>
+                </div>
+                <div class="macro-item">
+                  <div class="macro-header">
+                    <span class="macro-name">단백질</span>
+                    <span class="macro-gram" id="protein-g">- g</span>
+                  </div>
+                  <div class="macro-bar-track"><div class="macro-bar protein-bar" style="width:30%"></div></div>
+                  <span class="macro-pct-label">30%</span>
+                </div>
+                <div class="macro-item">
+                  <div class="macro-header">
+                    <span class="macro-name">지방</span>
+                    <span class="macro-gram" id="fat-g">- g</span>
+                  </div>
+                  <div class="macro-bar-track"><div class="macro-bar fat-bar" style="width:30%"></div></div>
+                  <span class="macro-pct-label">30%</span>
+                </div>
+              </div>
+            </div>
+            <div class="card stat-card">
+              <div class="card-title">🏋️ 추천 운동</div>
+              <div class="exercise-rec">
+                <div class="exercise-item"><span class="exercise-icon">📅</span><span id="exercise-freq">-</span></div>
+                <div class="exercise-item"><span class="exercise-icon">⏱️</span><span id="exercise-duration">-</span></div>
+                <div class="exercise-item"><span class="exercise-icon">💪</span><span id="exercise-type">-</span></div>
+              </div>
+            </div>
+            <div class="card stat-card">
+              <div class="card-title">⚖️ 체중 목표</div>
+              <div class="weight-info">
+                <div class="weight-row">
+                  <span class="weight-label">시작 체중</span>
+                  <span class="weight-value" id="start-weight-display">-</span>
+                </div>
+                <div class="weight-row">
+                  <span class="weight-label">현재 체중</span>
+                  <span class="weight-value" id="current-weight-display">-</span>
+                </div>
+                <div class="weight-row">
+                  <span class="weight-label">목표 체중</span>
+                  <span class="weight-value goal" id="goal-weight-display">-</span>
+                </div>
+                <div class="weight-row" id="bmi-status-row">
+                  <span class="weight-label">체중 상태</span>
+                  <span class="weight-value" id="bmi-status-display">-</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="card nutrition-widget" id="nutrition-widget">
+          <div class="widget-header">
+            <h3 class="section-title" style="margin-bottom:0">오늘의 영양 섭취 현황</h3>
+            <span class="widget-tag">AI 추적</span>
+          </div>
+          <div class="nutrition-grid">
+            <div class="donut-area">
+              <div class="donut-container">
+                <canvas id="nutri-chart"></canvas>
+                <div class="donut-center">
+                  <div class="donut-value" id="donut-consumed">0</div>
+                  <div class="donut-unit">kcal 섭취</div>
+                </div>
+              </div>
+              <div class="donut-legend">
+                <div class="dl-item"><span class="dl-dot" style="background:#FFA726"></span>아침</div>
+                <div class="dl-item"><span class="dl-dot" style="background:#42A5F5"></span>점심</div>
+                <div class="dl-item"><span class="dl-dot" style="background:#AB47BC"></span>저녀</div>
+                <div class="dl-item"><span class="dl-dot" style="background:var(--border)"></span>잔여</div>
+              </div>
+            </div>
+            <div class="macro-bars-area">
+              <div class="calorie-trio">
+                <div class="ct-item">
+                  <div class="ct-val" id="cal-target">-</div>
+                  <div class="ct-lbl">목표</div>
+                </div>
+                <div class="ct-sep"></div>
+                <div class="ct-item">
+                  <div class="ct-val consumed" id="cal-consumed">0</div>
+                  <div class="ct-lbl">섭취</div>
+                </div>
+                <div class="ct-sep"></div>
+                <div class="ct-item">
+                  <div class="ct-val remaining" id="cal-remaining">-</div>
+                  <div class="ct-lbl">잔여</div>
+                </div>
+              </div>
+              <div class="mpi" id="mpi-carb">
+                <div class="mpi-header"><span>탄수화물</span><span id="mp-carb-text" class="mpi-val">0g / -g</span></div>
+                <div class="mpi-track"><div class="mpi-fill mpi-carb" id="mp-carb-bar" style="width:0%"></div></div>
+              </div>
+              <div class="mpi" id="mpi-protein">
+                <div class="mpi-header"><span>단백질</span><span id="mp-protein-text" class="mpi-val">0g / -g</span></div>
+                <div class="mpi-track"><div class="mpi-fill mpi-protein" id="mp-protein-bar" style="width:0%"></div></div>
+              </div>
+              <div class="mpi" id="mpi-fat">
+                <div class="mpi-header"><span>지방</span><span id="mp-fat-text" class="mpi-val">0g / -g</span></div>
+                <div class="mpi-track"><div class="mpi-fill mpi-fat" id="mp-fat-bar" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div id="ai-rec-section" class="ai-rec-section hidden">
+          <div class="ai-rec-header">
+            <span class="ai-rec-title">💡 AI 추천</span>
+            <span class="text-secondary" style="font-size:0.8rem">오늘 남은 칼로리를 쇼워보세요</span>
+          </div>
+          <div class="ai-rec-cards" id="ai-rec-cards">
+            <div class="rec-card-skeleton">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="view-report" class="view">
+      <main class="main-content">
+        <section class="card chart-card">
+          <div class="chart-header">
+            <h3 class="section-title" style="margin-bottom:0">체중 변화 추이</h3>
+            <span id="weight-change-badge" class="change-badge change-neutral">데이터 없음</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="weight-chart"></canvas>
+          </div>
+        </section>
+
+        <section class="card heatmap-card">
+          <div class="heatmap-header">
+            <h3 class="section-title" style="margin-bottom:0">체크리스트 수행률</h3>
+            <div class="heatmap-legend">
+              <span class="text-secondary" style="font-size:0.75rem">적음</span>
+              <div class="legend-cell lv-0"></div>
+              <div class="legend-cell lv-1"></div>
+              <div class="legend-cell lv-2"></div>
+              <div class="legend-cell lv-3"></div>
+              <span class="text-secondary" style="font-size:0.75rem">많음</span>
+            </div>
+          </div>
+          <div class="heatmap-wrapper">
+            <div class="heatmap-row-labels" id="heatmap-row-labels">
+              <span>4주 전</span>
+              <span>3주 전</span>
+              <span>2주 전</span>
+              <span>이번 주</span>
+            </div>
+            <div class="heatmap-grid" id="heatmap-grid"></div>
+          </div>
+          <div class="streak-bar">
+            <span>🔥 현재 연속 달성 스트릭:</span>
+            <strong id="streak-count">0</strong>
+            <span>일</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3 class="section-title">주간 리포트</h3>
+          <div id="report-stats-grid" class="report-stats-grid"></div>
+          <div id="report-recs" class="report-recs"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="view-settings" class="view">
+      <main class="main-content">
+        <section class="card">
+          <h3 class="section-title">프로필 편집</h3>
+          <form id="settings-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="st-name">이름</label>
+                <input type="text" id="st-name" required />
+              </div>
+              <div class="form-group">
+                <label for="st-age">나이</label>
+                <input type="number" id="st-age" min="10" max="100" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="st-gender">성별</label>
+                <div class="select-wrapper">
+                  <select id="st-gender" required>
+                    <option value="male">남성</option>
+                    <option value="female">여성</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="st-height">신장 (cm)</label>
+                <input type="number" id="st-height" min="100" max="250" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="st-weight">현재 체중 (kg)</label>
+                <input type="number" id="st-weight" min="20" max="300" step="0.1" required />
+              </div>
+              <div class="form-group">
+                <label for="st-goal-weeks">목표 기간 (주)</label>
+                <input type="number" id="st-goal-weeks" min="1" max="52" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="st-activity">활동량</label>
+              <div class="select-wrapper">
+                <select id="st-activity" required>
+                  <option value="sedentary">비활동적 (거의 운동 안 함)</option>
+                  <option value="light">가병게 활동 (주 1-3회 가벼운 운동)</option>
+                  <option value="moderate">보통 활동 (주 3-5회 운동)</option>
+                  <option value="active">매우 활동적 (주 6-7회 고강도 운동)</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">저장하기</button>
+            <p id="settings-success" class="settings-success hidden">✅ 프로필이 저장되었습니다!</p>
+          </form>
+        </section>
+
+        <section class="card">
+          <h3 class="section-title">앱 설정</h3>
+          <div class="settings-list">
+            <div class="settings-item">
+              <div>
+                <div class="settings-item-label">다크 모드</div>
+                <div class="settings-item-desc text-secondary">어두운 테마로 전환합니다</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="st-dark-toggle" />
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-item">
+              <div>
+                <div class="settings-item-label">데이터 초기화</div>
+                <div class="settings-item-desc text-secondary">모든 기록과 프로필을 삭제합니다</div>
+              </div>
+              <button id="st-reset-btn" class="btn btn-danger btn-sm">초기화</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3 class="section-title">계정</h3>
+          <div class="account-info">
+            <div class="account-avatar" id="account-avatar">-</div>
+            <div>
+              <div class="account-username" id="account-username-display">-</div>
+              <div class="text-secondary" style="font-size:0.8rem">HealthBalance 계정</div>
+            </div>
+          </div>
+          <button id="logout-btn" class="btn btn-danger btn-full" style="margin-top:1rem">로그아웃</button>
+        </section>
+
+        <section class="card app-info-card">
+          <div class="app-info">
+            <span class="app-info-logo">💚</span>
+            <div>
+              <div class="app-info-name">HealthBalance Planner</div>
+              <div class="text-secondary" style="font-size:0.8rem">시작일: <span id="st-start-date">-</span></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="tab-btn active" data-view="today">
+        <span class="tab-icon">🏠</span>
+        <span class="tab-label">오늘</span>
+      </button>
+      <button class="tab-btn" data-view="report">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">리포트</span>
+      </button>
+      <button class="tab-btn" data-view="settings">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">설정</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="weight-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon">⚖️</div>
+      <h3 class="modal-title">주간 체중 확인</h3>
+      <p class="modal-subtitle" id="modal-week-label">-주차 체중을 입력해주세요</p>
+      <div class="form-group">
+        <label for="modal-weight-input">현재 체중 (kg)</label>
+        <input type="number" id="modal-weight-input" class="weight-input-large"
+          placeholder="00.0" step="0.1" min="20" max="300" />
+      </div>
+      <button id="modal-submit" class="btn btn-primary btn-full">기록하기</button>
+    </div>
+  </div>
+
+  <div id="feedback-modal" class="modal-overlay hidden">
+    <div class="modal-card feedback-card" id="feedback-card">
+      <div class="feedback-icon" id="feedback-icon">🎉</div>
+      <h3 class="feedback-title" id="feedback-title">-</h3>
+      <p class="feedback-message" id="feedback-message">-</p>
+      <div class="feedback-stats" id="feedback-stats"></div>
+      <button id="feedback-close" class="btn btn-primary btn-full">확인</button>
+    </div>
+  </div>
+
+  <div class="heatmap-tooltip" id="heatmap-tooltip"></div>
+
+  <div id="camera-modal" class="modal-overlay hidden">
+    <div class="modal-card camera-card">
+      <div class="camera-header">
+        <div>
+          <h3 class="modal-title" style="text-align:left;margin-bottom:0.1rem">📷 AI 식단 분석</h3>
+          <p class="modal-subtitle" id="camera-meal-label" style="text-align:left;margin:0">아침 식단 분석</p>
+        </div>
+        <button id="camera-close-btn" class="close-btn">✕</button>
+      </div>
+
+      <div id="step-capture" class="cam-step active-step">
+        <div class="viewfinder" id="viewfinder">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <div class="no-camera hidden" id="no-camera">
+            <span style="font-size:2rem">📷</span>
+            <span>카메라 접근 불가</span>
+            <span class="text-secondary" style="font-size:0.8rem">이미지 업로드를 사용하세요</span>
+          </div>
+        </div>
+        <div class="cam-controls">
+          <button id="capture-btn" class="btn btn-primary">📷 촬영</button>
+          <label class="btn btn-secondary" for="upload-input">🖼️ 업로드</label>
+          <input type="file" id="upload-input" accept="image/*" />
+        </div>
+      </div>
+
+      <div id="step-preview" class="cam-step">
+        <div class="preview-wrap">
+          <img id="preview-img" alt="캡처 이미지" />
+        </div>
+        <div class="cam-controls">
+          <button id="analyze-btn" class="btn btn-primary">🔍 AI 분석하기</button>
+          <button id="retake-btn" class="btn btn-secondary">↩ 다시 찍기</button>
+        </div>
+      </div>
+
+      <div id="step-loading" class="cam-step">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-line" style="margin-top:1rem"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line short"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line short" style="width:45%"></div>
+        <p class="loading-hint">AI가 음식을 분석하고 있어요 ✨</p>
+      </div>
+
+      <div id="step-result" class="cam-step">
+        <div id="ai-result-body"></div>
+        <div class="cam-controls">
+          <button id="apply-btn" class="btn btn-primary">✅ 식단에 적용</button>
+          <button id="retake2-btn" class="btn btn-secondary">↩ 다시 찍기</button>
+        </div>
+      </div>
+
+      <div id="step-error" class="cam-step">
+        <div class="error-box">
+          <span style="font-size:2.5rem">😥</span>
+          <p id="error-msg">분석에 실패했어요.</p>
+        </div>
+        <div class="manual-input-form">
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem">직접 입력할 수 있어요</p>
+          <input type="text"   id="manual-food"    class="form-input" placeholder="음식명 (예: 비빔밥)" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem">
+            <input type="number" id="manual-cal"  class="form-input" placeholder="칼로리 (kcal)" min="0" />
+            <input type="number" id="manual-carb" class="form-input" placeholder="탄수화물 (g)"  min="0" />
+            <input type="number" id="manual-prot" class="form-input" placeholder="단백질 (g)"   min="0" />
+            <input type="number" id="manual-fat"  class="form-input" placeholder="지방 (g)"     min="0" />
+          </div>
+          <button id="manual-apply-btn" class="btn btn-primary" style="width:100%;margin-top:0.75rem">입력 완료</button>
+        </div>
+        <div class="cam-controls" style="margin-top:0.5rem">
+          <button id="retry-btn" class="btn btn-secondary">다시 시도</button>
+          <button id="cancel-btn" class="btn btn-secondary">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.local.js"></script>
+  <script src="api.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
