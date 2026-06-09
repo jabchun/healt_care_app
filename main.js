@@ -47,20 +47,58 @@ let currentImageUrl  = null;
 let currentNutrition = null;
 
 // ===== STORAGE =====
-function load() {
+async function load() {
   try {
-    const p = localStorage.getItem(SK.PROFILE);
-    if (p) profile = JSON.parse(p);
-    const d = localStorage.getItem(SK.DAILY_LOGS);
-    if (d) dailyLogs = JSON.parse(d);
-    const w = localStorage.getItem(SK.WEEKLY_WEIGHTS);
-    if (w) weeklyWeights = JSON.parse(w);
-  } catch (_) {}
+    const [sbProfile, sbLogs, sbWeights] = await Promise.all([
+      dbLoadProfile(currentUser),
+      dbLoadDailyLogs(currentUser),
+      dbLoadWeeklyWeights(currentUser),
+    ]);
+    if (sbProfile) {
+      profile = sbProfile;
+      localStorage.setItem(SK.PROFILE, JSON.stringify(profile));
+    } else {
+      const p = localStorage.getItem(SK.PROFILE);
+      if (p) profile = JSON.parse(p);
+    }
+    if (Object.keys(sbLogs).length) {
+      dailyLogs = sbLogs;
+      localStorage.setItem(SK.DAILY_LOGS, JSON.stringify(dailyLogs));
+    } else {
+      const d = localStorage.getItem(SK.DAILY_LOGS);
+      if (d) dailyLogs = JSON.parse(d);
+    }
+    if (sbWeights.length) {
+      weeklyWeights = sbWeights;
+      localStorage.setItem(SK.WEEKLY_WEIGHTS, JSON.stringify(weeklyWeights));
+    } else {
+      const w = localStorage.getItem(SK.WEEKLY_WEIGHTS);
+      if (w) weeklyWeights = JSON.parse(w);
+    }
+  } catch (_) {
+    try {
+      const p = localStorage.getItem(SK.PROFILE);
+      if (p) profile = JSON.parse(p);
+      const d = localStorage.getItem(SK.DAILY_LOGS);
+      if (d) dailyLogs = JSON.parse(d);
+      const w = localStorage.getItem(SK.WEEKLY_WEIGHTS);
+      if (w) weeklyWeights = JSON.parse(w);
+    } catch (_) {}
+  }
 }
 
-const saveProfile       = () => localStorage.setItem(SK.PROFILE,        JSON.stringify(profile));
-const saveDailyLogs     = () => localStorage.setItem(SK.DAILY_LOGS,     JSON.stringify(dailyLogs));
-const saveWeeklyWeights = () => localStorage.setItem(SK.WEEKLY_WEIGHTS, JSON.stringify(weeklyWeights));
+const saveProfile = () => {
+  localStorage.setItem(SK.PROFILE, JSON.stringify(profile));
+  if (currentUser) dbSaveProfile(currentUser, profile);
+};
+const saveDailyLogs = () => {
+  localStorage.setItem(SK.DAILY_LOGS, JSON.stringify(dailyLogs));
+  if (currentUser) dbSaveDailyLog(currentUser, todayKey(), dailyLogs[todayKey()] || {});
+};
+const saveWeeklyWeights = () => {
+  localStorage.setItem(SK.WEEKLY_WEIGHTS, JSON.stringify(weeklyWeights));
+  if (currentUser) dbSaveWeeklyWeights(currentUser, weeklyWeights);
+};
 
 // ===== CALCULATIONS =====
 function calcBMR(gender, weight, height, age) {
@@ -1124,15 +1162,22 @@ async function handleLogin(e) {
 
   if (!username || !password) { errEl.textContent = '아이디와 비밀번호를 입력해주세요.'; return; }
 
-  const accounts = getAccounts();
-  if (!accounts[username]) { errEl.textContent = '존재하지 않는 계정입니다.'; return; }
-
   const hash = await hashPassword(password);
-  if (accounts[username].hash !== hash) { errEl.textContent = '비밀번호가 올바르지 않습니다.'; return; }
+
+  try {
+    const user = await dbGetUser(username);
+    if (!user) { errEl.textContent = '존재하지 않는 계정입니다.'; return; }
+    if (user.password_hash !== hash) { errEl.textContent = '비밀번호가 올바르지 않습니다.'; return; }
+  } catch (_) {
+    // Supabase 연결 실패 시 localStorage 폴백
+    const accounts = getAccounts();
+    if (!accounts[username]) { errEl.textContent = '존재하지 않는 계정입니다.'; return; }
+    if (accounts[username].hash !== hash) { errEl.textContent = '비밀번호가 올바르지 않습니다.'; return; }
+  }
 
   currentUser = username;
   setSession(username, remember);
-  load();
+  await load();
   if (!profile) showOnboarding(); else showDashboard();
 }
 
@@ -1150,18 +1195,32 @@ async function handleRegister(e) {
   if (password.length < 6) { errEl.textContent = '비밀번호는 6자 이상이어야 합니다.'; return; }
   if (password !== confirm) { errEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
 
-  const accounts = getAccounts();
-  if (accounts[username]) { errEl.textContent = '이미 사용 중인 아이디입니다.'; return; }
-
   const hash = await hashPassword(password);
-  accounts[username] = { hash, createdAt: new Date().toISOString() };
-  saveAccounts(accounts);
+
+  try {
+    const existing = await dbGetUser(username);
+    if (existing) { errEl.textContent = '이미 사용 중인 아이디입니다.'; return; }
+    await dbCreateUser(username, hash);
+  } catch (_) {
+    // Supabase 연결 실패 시 localStorage 폴백
+    const accounts = getAccounts();
+    if (accounts[username]) { errEl.textContent = '이미 사용 중인 아이디입니다.'; return; }
+    accounts[username] = { hash, createdAt: new Date().toISOString() };
+    saveAccounts(accounts);
+  }
+
+  // localStorage에도 계정 저장 (오프라인 폴백용)
+  const accounts = getAccounts();
+  if (!accounts[username]) {
+    accounts[username] = { hash, createdAt: new Date().toISOString() };
+    saveAccounts(accounts);
+  }
 
   migrateOldData(username);
 
   currentUser = username;
   setSession(username, true);
-  load();
+  await load();
   if (!profile) showOnboarding(); else showDashboard();
 }
 
@@ -1202,7 +1261,7 @@ function updatePasswordStrength(password) {
 }
 
 // ===== INIT =====
-function init() {
+async function init() {
   applyTheme(localStorage.getItem(SKA.THEME) || 'light');
 
   // Auth screen
@@ -1232,11 +1291,14 @@ function init() {
   document.getElementById('st-dark-toggle').addEventListener('change', toggleTheme);
 
   // Settings reset
-  document.getElementById('st-reset-btn').addEventListener('click', () => {
+  document.getElementById('st-reset-btn').addEventListener('click', async () => {
     if (!confirm('모든 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
     localStorage.removeItem(SK.PROFILE);
     localStorage.removeItem(SK.DAILY_LOGS);
     localStorage.removeItem(SK.WEEKLY_WEIGHTS);
+    if (currentUser) {
+      try { await dbDeleteUserData(currentUser); } catch (_) {}
+    }
     location.reload();
   });
 
@@ -1315,11 +1377,11 @@ function init() {
   const session = getSession();
   if (session) {
     currentUser = session.username;
-    load();
+    await load();
     if (!profile) showOnboarding(); else showDashboard();
   } else {
     showAuth();
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => init());
